@@ -1,0 +1,20 @@
+
+(defun disable-draggable (shape)
+  (setf (@ shape node draggable) false)
+  shape)
+
+(defun grey-rect-style (paper &key (x 10) (y 10))
+  (disable-draggable (chain paper
+                            (rect x y 10 10)
+                            (attr (create :fill "#ccc")))))
+
+(defun grey-turned-rect-style (paper &key (x 10) (y 10))
+  (disable-draggable (chain paper
+                            (rect x y 10 10)
+                            (attr (create :fill "#cc0000")))))
+
+(defun grey-circle-style (paper &key (x 10) (y 10) (r 6))
+  (disable-draggable (chain paper
+                            (circle x y r)
+                            (attr (create :fill "#ccc")))))
+

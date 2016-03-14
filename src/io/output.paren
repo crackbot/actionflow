@@ -1,0 +1,60 @@
+
+(defjsclass *output (*io)
+  "Output io"
+  
+  (defun connect-to-input (input connection)
+    (-> connection (set-objs :source this :target input))
+    (-> input connections (push connection))
+    (-> this connections (push connection)))
+
+  (defun setup-dragging (paper square)
+    (var self this)
+    (labels ((start ()
+               (setf% ox (-> this (attr :x))
+                      oy (-> this (attr :y))
+                      connection (new (*io-connection)))
+               (when (@ self on-start)
+                 (-> self (on-start))))
+             
+             (move (dx dy)
+               (var lself this)
+               (-> this connection (draw paper self (create :drawn (create "getBBox" (lambda ()
+                                                                                       (create :x (+ (@ lself ox) dx)
+                                                                                               :y (+ (@ lself oy) dy)
+                                                                                               :width 2
+                                                                                               :height 2))))))
+               (setf% dx dx
+                      dy dy)
+               (when (@ self on-move)
+                 (-> self (on-move))))
+             
+             (end ()
+               (let* ((matched-input (-> io-factory (find-input-inside-coords (+ (@ this ox) (@ this dx))
+                                                                              (+ (@ this oy) (@ this dy))))))
+                 (if (and matched-input
+                          (eql (@ matched-input state) 'enabled))
+                     
+                     (progn
+                       (-> self (connect-to-input matched-input (@ this connection)))
+                       (-> self (trigger "connected"))
+                       (-> matched-input (trigger "connected"))
+                       
+                       
+                       ;; (when (@ self on-connect)
+                       ;;   (-> self (on-connect (@ this connection))))
+                       )
+                     (-> this connection (remove-drawn))))
+               (when (@ self on-end)
+                 (-> self (on-end)))))
+      (-> square (drag move start end))))
+  
+  (defun draw (paper x y)
+    (let ((name (-> paper
+                    (text (- x 5) (+ y 5) (@ this meta title))
+                    (attr (create :text (@ this meta title)
+                                  :font-size '12px
+                                  :text-anchor 'end))))
+          (output-square (-> this meta (style paper :x x :y y))))
+      (setf (@ this drawn) output-square)
+      (-> this (setup-dragging paper output-square))
+      (values name output-square))))

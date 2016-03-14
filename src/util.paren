@@ -1,0 +1,7 @@
+
+(defun redirect (url)
+  (setf (@ window location href) url))
+
+(defmacro fire (ev &rest args)
+  `(when (and (@ this options) (@ this options ,ev))
+     (-> this options (,ev ,@args))))

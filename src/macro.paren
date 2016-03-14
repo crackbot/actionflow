@@ -1,0 +1,10 @@
+
+(defmacro onload (&rest body)
+  `(setf (ps:@ window onload) (lambda () ,@body)))
+
+;; (_ find (list 1 2 3) (lambda (x) ))
+(defmacro _ (fun &rest body)
+  `(chain _ (,fun ,@body)))
+
+(defun json-encode (obj)
+  (chain *json* (stringify obj)))

@@ -1,0 +1,79 @@
+;; io factory
+
+(defjsclass *io-factory2 ()
+  (defun initialize (options)
+    (_ bind-all this)
+    (setf% inputs (array)
+           outputs (array)))
+
+  (defun/contract find-by-class (cls)
+    (>> classp anyp)
+    (-> this (map (lambda (io)
+                    (when (instanceof io cls)
+                      io)))))
+  
+  (defun/contract new-input (name &optional action)
+    (>>* (classp) ((instanceof/c *action))
+         (instanceof/c *input))
+    (let ((input (new (name))))
+      (when action
+        (setf (@ input action) action))
+      (-> this inputs (push input))
+      input))
+  
+  (defun/contract new-output (name &optional action)
+    (>>* (classp) ((instanceof/c *action))
+         (instanceof/c *output))
+    (let ((output (new (name))))
+      (when action
+        (setf (@ output action) action))
+      (-> this outputs (push output))
+      output))
+  
+  (defun remove-obj (type obj)
+    (setf (getprop this type)
+          (_ reject (getprop this type)
+             (lambda (o)
+               (eql o obj)))))
+  
+  (defun/contract remove-output (output)
+    (>> (instanceof/c *output)
+        anyp)
+    (-> this (remove-obj :outputs output)))
+  
+  (defun/contract remove-input (input)
+    (>> (instanceof/c *input)
+        anyp)
+    (-> this (remove-obj :inputs input)))
+  
+  (defun/contract init (action args)
+    (>> (instanceof/c *action)
+        (listof/c classp)
+        (listof/c (instanceof/c *io)))
+    (var self this)
+    (mapcar (lambda (io)
+                  (case (@ io meta type)
+                    (:in  (-> self (new-input io action)))
+                    (:out (-> self (new-output io action)))
+                    (otherwise (throw "No valid input type found"))))
+            args))
+  
+  (defun/contract map (fun)
+    (>> functionp arrayp)
+    (-> (array) (concat (map fun (@ this inputs))
+                        (map fun (@ this outputs)))))
+  
+  (defun/contract find-input-inside-coords (ox oy)
+    (>> numberp numberp
+        (maybe/c (instanceof/c *input)))
+    (when (@ this inputs)
+      (flet ((lookup (input)
+               (when (@ input drawn)
+                 (with-slots (x y width height) (-> input drawn (get-b-box))
+                   (and (> ox x)
+                        (< ox (+ x width))
+                        (> oy y)
+                        (< oy (+ y height)))))))
+        (find-if #'lookup (@ this inputs))))))
+
+(var io-factory (new (*io-factory2)))

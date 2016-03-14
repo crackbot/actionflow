@@ -1,0 +1,18 @@
+
+(defjsclass *input (*io)
+  "Input connections"
+  (defun draw (paper x y)
+    ; we are not using contracts here, because contracts
+    ; doesn't support correct callee/caller lookups yet
+    ; and returning multiple values in parenscript depends
+    ; on it.
+    ;(>> (instanceof/c *raphael) numberp numberp any)
+    (var self this)
+    (let ((name (chain paper
+                       (text (+ x 10) (+ y 5) (@ self meta title))
+                       (attr (create :text (@ self meta title)
+                                     :font-size '12px
+                                     :text-anchor 'start))))
+          (shape (chain self meta (style paper :x (- x 5) :y y))))
+      (setf% drawn shape)
+      (values name shape))))

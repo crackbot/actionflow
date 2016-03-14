@@ -1,0 +1,202 @@
+
+;; flow main management 
+
+;; (defun find-action-by-title (title)
+;;   (_ find *actions* (lambda (action)
+;;                       (eq (@ action meta title) title))))
+
+(defjsclass *flow ()
+  (defun/contract initialize (paper options)
+    (>> (instanceof/c *raphael) (maybe/c objectp) anyp)
+    (setf% paper paper
+           actions (array)
+           current-action nil
+           options options))
+  
+  ;; (defun process (ev binding)
+  ;;   ; (>> eventp any any)
+  ;;   (var self this)
+  ;;   (-> $ (post (+ "/flows/" (@ flow-data id) "/process")
+  ;;                  (create :data (-> this (serialize-json)))
+  ;;                  (lambda (res)
+  ;;                    (setf res (-> *j-s-o-n (parse res)))
+  ;;                    (when (eq (@ res status) :okay)
+  ;;                      (map (lambda (output-id)
+  ;;                             (let ((action (-> self (find-action-by-id output-id))))
+  ;;                               (log action)
+  ;;                               (-> action component (watch-for-updates action))))
+  ;;                           (@ res outputs)))))))
+  
+  (defun/contract set-current-action (action)
+    (>> (instanceof/c *action) anyp)
+    (if (@ this current-action)
+        (-> this current-action (unselected)))
+    (setf (@ this current-action) action))
+  
+  (defun/contract find-action-by-id (id)
+    (>> stringp (instanceof/c *action))
+    (find-if (lambda (action)
+               (eq (@ action id) id))
+             (@ this actions)))
+  
+  (defun/contract add-action (action-class ev)
+    (>>i classp anyp (lambda (cls)
+                       (instanceof/c cls)))
+    (when ev
+      (-> ev (prevent-default)))
+    (let* ((action (new (action-class (create :flow this))))
+           (shape (-> action (create-shape (create :x 20
+                                                   :y 20
+                                                   :width 150
+                                                   :height 100
+                                                   :radius 5)))))
+      (push action (@ this actions))
+      (-> shape (draw (@ this paper)))
+      action))
+  
+  (defun/contract remove-action (ev action)
+    (>> anyp (instanceof/c *action) anyp)
+    (map (lambda (conn)
+           (-> conn (remove)))
+         (@ action shape connections))
+    (-> action shape (undraw))
+    (setf (@ this actions) (_ reject (@ this actions) (lambda (a)
+                                                        (eql a action)))))
+
+  (defun serialize ()
+    (mapcar (lambda (action)
+              (-> action (serialize)))
+            (@ this actions)))
+
+  (defun to-json ()
+    (-> *j-s-o-n (stringify (-> this (serialize)))))
+
+  (defun clear ()
+    "Remove all actions from the flow."
+    (mapcar #'(lambda (a)
+                (-> a (remove)))
+            (@ this actions))))
+
+(labels ((from-json (paper json class-map)
+           (let ((actions (-> *j-s-o-n (parse json)))
+                 (flow (new (*flow paper (create)))))
+             ;; re-create all actions
+             (dolist (action actions)
+               (-> flow (add-action (getprop class-map (@ action name)))))
+             ;; re-create connections between actions
+             ;; [TODO]
+             flow)))
+  (setf (@ *flow from-json) from-json))
+
+  ;; (defun/contract unserialize (paper data)
+  ;;   (>> (instanceof/c *raphael)
+  ;;       (listof/c (object/c :id stringp
+  ;;                           :connections arrayp
+  ;;                           :shape objectp))
+  ;;       anyp)
+  ;;   (let ((actions)
+  ;;         (flow (new (*flow paper (create)))))
+  ;;     (labels ((new-action (conf)
+  ;;              (let ((action-cls (@ window (@ conf name))))
+  ;;                (-> flow (add-action action-cls))))
+  ;;              (setup-connection (conn)
+  ;;                (let ((source (-> flow (find-action-by-id (@ conn source-action-id))))
+  ;;                      (target (-> flow (find-action-by-id (@ conn target-action-id))))
+  ;;                      (conneciton (new (*io-connection))))
+                   
+  ;;                                )
+  ;;              (build-connections (conf)
+  ;;                (let ((action (-> flow (find-action-by-id (@ conf id)))))
+  ;;                  (mapcar (partial setup-connection) (@ conf connections)
+                           
+  ;;                               ))
+  ;;       (setf actions (mapcar #'new-action data))
+  ;;       (mapcar #'build-connecitons data))))
+  ;;     flow))
+      
+
+  ;; (defun/contract get-files (dummy)
+  ;;   (>> anyp (listof/c (instanceof/c *blob)))
+  ;;   (_ compact (_ map (@ this actions) (lambda (action)
+  ;;                                        (when (@ action params-model uploaded-image)
+  ;;                                          (datauri (@ action params-model uploaded-image)))))))
+  
+  ;; (defun serialize-json ()
+  ;;   (json-encode (-> this (build-json))))
+
+  ;; (defun build-json ()
+  ;;   (create :actions (_ map (@ this actions) (lambda (action)
+  ;;                                              (create :id (@ action id)
+  ;;                                                      :title (@ action meta title)
+  ;;                                                      :type (@ action meta type)
+  ;;                                                      :params (serialize-proc (@ action model attrs) (@ action model)))))
+            
+  ;;           :nodes (-> io-factory (map (lambda (io) (create :id (@ io id)
+  ;;                                                              :title (@ io meta title)
+  ;;                                                              :type  (@ io meta type)
+  ;;                                                              :action (@ io action id)))))
+            
+  ;;           :edges (_ flatten (_ map (@ io-factory outputs) (lambda (output)
+  ;;                                                             (_ map (@ output connections) (lambda (conn)
+  ;;                                                                                             (create :id (@ conn id)
+  ;;                                                                                                     :target (@ conn target id)
+  ;;                                                                                                     :source (@ conn source id)))))))))
+  
+  ;; (defun load-from-json ()
+  ;;   )
+  
+  ;; (defun serialize-lang () ())
+
+  ;; ;; (defun save-more ()
+  ;; ;;   (let ((data (_ map (@ this actions)
+  ;; ;;                  (lambda (action)
+  ;; ;;                    (-> action (serialize))))))
+  ;; ;;     data))
+  
+  ;; (defun save ()
+  ;;   (let ((data (_ map (@ this actions)
+  ;;                  (lambda (action)
+  ;;                    (-> action (serialize))))))
+  ;;     (map (lambda (action)
+  ;;            (_ each (@ action shape connections)
+  ;;               (lambda (connection)
+  ;;                 (setf (@ connection serialized) false))))
+  ;;          (@ this actions))
+
+  ;;     (log data)
+  ;;     (-> $ (post (+ "/flows/" (@ this options id))
+  ;;                    (create :data (json-encode data))
+  ;;                    (lambda (res) ())))))
+      
+  ;; (defun load (data)
+  ;;   (var self this)
+  ;;   (labels ((create-action (action-data)
+  ;;              "create actions and their shapes"
+  ;;              (log action-data)
+  ;;              (let* ((action-class (find-action-by-title (@ action-data title)))
+  ;;                     (action (new (action-class (create
+  ;;                                                 :id (@ action-data id)
+  ;;                                                 :flow self
+  ;;                                                 :data (@ action-data model)))))
+  ;;                     (shape (-> action (create-shape (@ action-data shape)))))
+  ;;                (push (@ self actions) action)
+  ;;                (-> shape (draw (@ self paper)))))
+  ;;            (create-connection (action-data)
+  ;;              "create connections between actions"
+  ;;              (with-slots (connections) action-data
+  ;;                (_ each connections (lambda (connection)
+  ;;                                      (let ((source-action (-> self (find-action-by-id (@ connection source-action-id)))) 
+  ;;                                            (target-action (-> self (find-action-by-id (@ connection target-action-id)))))
+  ;;                                        (when (and source-action target-action)
+  ;;                                          (let ((source-io (-> source-action (find-output-by-title (@ connection source-title))))
+  ;;                                                (target-io (-> target-action (find-input-by-title (@ connection target-title)))))
+  ;;                                            (-> source-io (connect-to-input target-io (new (*io-connection))))))))))))
+  ;;     (map #'create-action data)
+  ;;     (map #'create-connection data))
+
+  ;;   ;; this will make connections show up in correct place
+  ;;   ;; it's a fixup right now
+  ;;   (map (lambda (action)
+  ;;          (_ each (@ action shape connections) (lambda (conn)
+  ;;                                                 (-> conn (draw (@ self paper))))))
+  ;;        (@ this actions))))

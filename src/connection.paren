@@ -1,0 +1,19 @@
+;; connections
+
+(defjsclass *connection ()
+  (defun/contract initialize (options)
+    (>> (object/c :paper classp
+                  :color (maybe/c stringp))
+        anyp)
+    (setf% options options
+           paper (@ options paper))))
+
+(defjsclass *simple-connection (*connection)
+  (defun tie (object1 object2)
+    (-> this paper (connection (@ object1 shape)
+                               (@ object2 shape)
+                               (@ this options color)))))
+
+;; (defclass *one-way-connection (connection))
+
+;; (defclass *two-way-connection (connection))

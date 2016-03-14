@@ -1,0 +1,137 @@
+
+(defjsclass *path-string ()
+  (defun initialize (options)
+    (setf% path (array)
+               options options))
+
+  (defun push (&rest args)
+    (push (@ this path) args)
+    this)
+
+  (defun build-path ()
+    (let ((path (array)))
+      (dolist (el (@ this path))
+        (if (eq (length el) 1)
+            (push path (string-upcase (car el)))
+            (push path (array (concat (string-upcase (elt el 0)) (elt el 1)) (slice el 2)))))
+      (join " " (_ flatten path))))
+  
+  (defun move (x y)
+    (chain this (push :M x y)))
+
+  (defun line (x y)
+    (chain this (push :L x y)))
+
+  (defun horizontal (x)
+    (chain this (push :H x)))
+
+  (defun vertical (y)
+    (chain this (push :V y)))
+
+  (defun drag (ox oy)
+    (dolist (el (@ this path))
+      (setf (elt el 1) (+ (elt el 1) ox)
+            (elt el 2) (+ (elt el 2) oy))))
+  
+  (defun end-drag ()
+    (setf% cached-path nil))
+  
+  (defun close ()
+    (chain this (push :Z))
+    (chain this (build-path))
+    this))
+
+(defjsclass *sideway-triangle-shape (*shape)
+  (defun setup (options) ())
+
+  (defun undraw ()
+    (log "called")
+    ; (chain this shape children (remove))
+    (chain this shape (remove)))
+  
+  (defun draw (paper)
+    (var self this)
+    (var set (chain paper (set)))
+
+    (setf% path (-> (new (*path-string))
+                           (move 10 10)
+                           (line 10 110)
+                           (line 60 60)
+                           (close)))
+
+    
+    (labels ((draw-path (path)
+               (with-slots (x y width height radius inputs outputs) (@ self options)
+                 (if (@ self shape)
+                   (-> self shape (attr "path" (-> self path (build-path))))
+                   (setf (@ self shape) (-> paper (path (-> self path (build-path))) (attr (create :stroke "#ff0000"
+                                                                                                         :fill "yellow"
+                                                                                                         "stroke-linecap" "round"
+                                                                                                         "stroke-width" 2))))))))
+      (draw-path)
+
+      (-> self shape (click (lambda ()
+                                 (-> self action (selected)))))
+      
+      ;; setup inputs and outputs boxes
+      (labels ((process-io (io-array left-offset start-height)
+                 (when io-array
+                   (let ((step 20) (i 1))
+                     (dolist (io-val io-array)
+                       ;; (todo) not sure if that's a good way...
+                       (setf (@ io-val parent-shape) self)
+                       
+                       (multiple-value-bind (name shape) (-> io-val (draw paper left-offset (+ start-height (* i step))))
+                         (-> set (push name shape)))
+                       
+                       (incf i))))))
+
+        (let ((x 10) (y 20) (width 20)) ; this should be based on path
+          (process-io (@ this options inputs) x (+ y 20))
+          (process-io (@ this options outputs) (+ x width) 40)))
+
+      ;; saving shape content as children
+      (setf (@ this shape children) set)
+
+      (setf (@ window aaa) (elt set 1))
+      (log set)
+      
+      ;; setup dragging on shape and all it's content 
+      (let ((positions (array)))
+        (labels ((start ()
+                   (setf (@ this ox) (-> this (attr :x))
+                         (@ this oy) (-> this (attr :y)))
+
+                   ;; build children initial positions
+                   (map (lambda (e)
+                          (if (eq (@ e type) "circle")
+                              (-> positions (push (array e (-> e (attr :cx)) (-> e (attr :cy)))))
+                              (-> positions (push (array e (-> e (attr :x)) (-> e (attr :y)))))))
+                        (@ this children)))
+                   
+                 (move (dx dy)
+                   (-> self path (drag (- dx (@ this ox)) (- dy (@ this oy))))
+                   (draw-path)
+
+                   ;; update children positions
+                   (map (lambda (pos)
+                          (cond ((eq (@ (elt pos 0) type) "circle")
+                                 (-> pos 0 (attr (create :cx (+ (elt pos 1) dx)
+                                                         :cy (+ (elt pos 2) dy)))))
+                                
+                                (t (-> pos 0 (attr (create :x (+ (elt pos 1) dx) ; (+ (elt pos 1) dx)
+                                                           :y (+ (elt pos 2) dy)))))))
+                        positions) ; dy))))))
+
+                   (map (lambda (conn)
+                          (-> conn (draw paper)))
+                        (@ self connections))
+                   
+                   (setf (@ this ox) dx
+                         (@ this oy) dy)
+                   
+                   (-> paper (safari)))
+                 (end () ()))
+          (-> (@ this shape) (drag move start end)))))
+    
+    (-> paper (safari))))

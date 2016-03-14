@@ -1,0 +1,65 @@
+
+(defjsclass *shape ()
+  "basic geometric shapes, building blocks of more custom shapes"
+  (defun/contract initialize (options)
+    (>> (object/c :action (instanceof/c *action))
+        anyp)    
+    (setf% options options
+           ; connections (array)
+           action (@ this options action))
+    
+    (-> this (setup options)))
+  
+  (defun draw ())
+
+  (defun blink ()
+    (var self this)
+    (labels ((set-color (color)
+               (-> self shape (attr (create :fill color
+                                            :fill-opacity 100)))))
+      (let ((cur-bg-color (-> this shape (attr "fill"))))
+        (-> window (set-timeout (lambda ()
+                                     (set-color cur-bg-color))
+                                   1000))
+        (set-color "#ff0000"))))
+  
+  (defun serialize ()
+    (-> console (log (@ this serializable-attrs)))
+    (let ((res (create)))
+      (dolist (attr (@ this serializable-attrs))
+        (setf (getprop res attr)
+              (getprop (@ this options) attr)))
+      res))
+      
+    ;; (let* ((self this)
+    ;;        (shape (@ this shape)))
+    ;;   (flet ((p (attr)
+    ;;            (let ((val (or (-> shape (attr attr))
+    ;;                           (getprop (@ self options) attr))))
+    ;;              (create* attr val))))
+    ;;     (_ maphash (@ this serializeable-attrs) p)))
+    ;; )
+  
+  (defun undraw ()
+    (-> this shape children (remove))
+    (-> this shape (remove))))
+
+;; (defclass *brick-shape (*rectangle-shape))
+
+;; (defclass *square-shape (*rectangle-shape))
+
+;; (defclass *wall-shape (*rectangle-shape))
+
+;; (defclass *column-shape (*rectangle-shape))
+
+;;
+
+;; (defclass *triangle-shape (*shape))
+
+;; (defclass *circle-shape (*shape))
+
+;; (defclass *oval-shape (*shape))
+
+;; (defclass *parallelogram-shape (*shape))
+
+;; (defclass *trapezoid-shape (*shape))

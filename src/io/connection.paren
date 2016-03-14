@@ -1,0 +1,66 @@
+;; io line connection object
+
+(defjsclass *io-connection ()
+  (defun initialize (options)
+    (_ bind-all this)
+    (setf% drawn null
+           source null
+           target null))
+  
+  (defun/contract draw (paper source target)
+    (>> (instanceof/c *raphael)
+        (maybe/c (instanceof/c *output))
+        anyp ; [TODO]
+        anyp)
+    (var self this)
+    (=|| source (@ this source))
+    (=|| target (@ this target))
+    (-> this (remove-drawn))
+    (let ((drawn (-> paper (connection (@ source drawn) (@ target drawn)))))
+      (-> drawn line (click (lambda (x)
+                                 (-> self (selected)))))
+      (setf% drawn drawn)))
+  
+  (defun/contract set-objs (&key source target)
+    (>> :source (instanceof/c *output)
+        :target (instanceof/c *input)
+        anyp)
+    (var self this)
+    (flet ((set-obj (name obj)
+             (when obj
+               (setf (getprop self name) obj))))
+      (set-obj :source source)
+      (set-obj :target target)))
+
+  (defun selected ()
+    (fire on-select this))
+  
+  (defun remove-drawn ()
+    (when (@ this drawn)
+      (-> this drawn line (remove))))
+  
+  (defun remove ()
+    "Remove drawn connection."
+
+    (when (@ this source action on-remove-connection)
+      (-> this source action (on-remove-connection this)))
+    (when (@ this target action on-remove-conneciton)
+      (-> this target action (on-remove-connection this)))
+    
+    (var self this)
+    ;; this may fail as well if remove is called not by clicking on remove
+    ;; button in params-view
+    ;; (-> *react (unmount-component-at-node (global params-view-container)))
+    
+    ;; this should be moved into parent-shape
+    ;; (remove-el! (@ this source parent-shape connections) self)
+    ;; (remove-el! (@ this target parent-shape connections) self)
+    ;; (remove-el! (@ this source connections) self)
+    
+    (-> this (remove-drawn))))
+
+(defmeta *io-connection
+  (title "connection")
+  (view-component (component io-connection
+                    (defun render ()
+                      (who->react (:div "Hello, this is connection " (:button :on-click (@ this props connection remove) "Remove")))))))

@@ -1,0 +1,110 @@
+
+(defjsclass *rectangle-shape (*shape)
+  (defun setup (options)
+    (setf% serializable-attrs
+           (list :width :height :x :y :radius)))
+
+  (defun create-shape (set)
+    "Create shape and all it's content."
+    (with-slots (x y width height radius)
+        (@ this options)
+      (let ((shape (-> paper (rect x y width height radius))))
+        (setf (@ shape node draggable) false)
+        
+        ;; title
+        (-> set (push (-> paper
+                          (text (+ x 10) (+ y 14) (@ this action meta title))
+                          (attr (create :text (@ this action meta title)
+                                        :font-size '13px
+                                        :font-weight 'bold
+                                        :text-anchor 'start)))))
+        shape)))
+
+  (defun style-shape (shape)
+    "Style shape."
+    (-> shape (attr (create :fill "#ffffff" ;(-> *raphael (get-color))
+                            :stroke (-> *raphael (get-color))
+                            :fill-opacity 100
+                            :stroke-width 2
+                            :cursor "move"))))
+
+  (defun setup-dragging (shape)
+    "Setup dragging on shape and all it's content."
+    (let ((self this)
+          (positions (array)))
+      (labels ((start ()
+                 (when (@ self on-start)
+                   (-> self (on-start)))
+                 (setf (@ this ox) (-> this (attr :x))
+                       (@ this oy) (-> this (attr :y)))
+                 
+                 (map (lambda (e)
+                        (-> positions (push (array e (-> e (attr :x)) (-> e (attr :y))))))
+                      (@ this children)))
+               
+               (move (dx dy)
+                 (when (@ self on-move)
+                   (-> self (on-move)))
+                 (-> this (attr (create :x (+ (@ this ox) dx)
+                                           :y (+ (@ this oy) dy))))
+                 (map (lambda (pos)
+                        (-> pos 0 (attr (create :x (+ (elt pos 1) dx)
+                                                :y (+ (elt pos 2) dy)))))
+                      positions)
+
+                 
+                 (map (lambda (conn)
+                        (-> conn (draw paper)))
+                      (-> self action (output-connections)))
+
+                 (map (lambda (conn)
+                        (-> conn (draw paper)))
+                      (-> self action (input-connections)))
+                 
+                 (-> paper (safari)))
+               (end ()
+                 (when (@ self on-end)
+                   (-> self (on-end)))))
+        (-> shape (drag move start end)))))
+
+  (defun setup-shape-io (set)
+    "Setup inputs and outputs boxes."
+    (let ((self this))
+      (with-slots (x y width height radius inputs outputs)
+          (@ this options)
+        (labels ((process-io (io-array left-offset start-height)
+                   (when io-array
+                     (let ((step 20) (i 1))
+                       (dolist (io-val io-array)
+                         ;; (todo) not sure if that's a good way...
+                         (setf (@ io-val parent-shape) self)
+                         
+                         (multiple-value-bind (name shape)
+                             (-> io-val (draw paper left-offset (+ start-height (* i step))))
+                           (-> set (push name shape)))
+                         
+                         (incf i))))))
+          (process-io inputs x (+ y 20))
+          (process-io outputs (+ x (- width 5)) (+ y 20))))))
+  
+  (defun draw (paper)
+    (let* ((self this)
+           (set (-> paper (set)))
+           (shape (-> this (create-shape set))))
+
+      ;; saving shape content as children
+      (setf (@ this shape) shape
+            (@ shape children) set)
+      
+      (-> this (setup-shape-io set))
+      
+      ;; on shape click we need to notify action instance that we are selected
+      ;; which in turn will show action parameters window
+      (-> this shape (click (lambda ()
+                              (-> self action (selected)))))
+    
+      (-> this (setup-dragging shape))
+
+      (-> this (style-shape shape))
+      
+      (-> paper (safari)))))

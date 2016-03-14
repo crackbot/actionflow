@@ -1,0 +1,35 @@
+;; 
+
+(defjsclass *io (*events)
+  "Input ouputs definitions for shapes"
+  (defun initialize (options)
+    (setf% options options
+           drawn undefined
+           action undefined
+           connections (array)
+           ;parent-shape undefined
+           state (or (and (@ this options) (@ this options state))
+                     (@ this meta state)
+                     'enabled))
+    (when (@ this setup)
+      (-> this (setup))))
+  
+  (defun highlight ()
+    (-> this drawn (attr (create :stroke "#ff0000"
+                                    "stroke-linecap" "round"
+                                    "stroke-width" 2))))
+
+  (defun disable ()
+    (-> this drawn (attr (create :stroke "#fff"
+                                    "stroke-linecap" "round"
+                                    "stroke-width" 2)))
+    (setf (@ this state) 'disabled))
+
+  (defun enable ()
+    (-> this drawn (attr (create :stroke "#666"
+                                    "stroke-linecap" "round"
+                                    "stroke-width" 2)))
+    (setf (@ this state) 'enabled))
+  
+  (defun unhighlight ()
+    (-> this drawn (attr (create :stroke "#666")))))

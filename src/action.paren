@@ -1,0 +1,157 @@
+
+(defjsclass *action (*events)
+  (defun/contract initialize (options)
+    (>> (object/c :id (maybe/c stringp)
+                  :flow (instanceof/c *flow)
+                  ;; callbacks
+                  :on-remove-connection (maybe/c functionp))
+        anyp)
+    
+    (setf% options options
+           shape nil
+           flow (@ this options flow))
+    
+           ;; model (new ((@ this meta model) (@ options data))))
+    
+    (when (@ options id)
+      (setf% id (@ options id)))
+    
+    (setf% inputs (-> io-factory (init this (@ this meta inputs)))
+           outputs (-> io-factory (init this (@ this meta outputs))))
+
+    (when (@ this setup)
+      (-> this (setup)))
+
+    (_ bind-all this))
+  
+  (defun remove (ev)
+    (-> this (unselected))
+    (-> this flow (remove-action ev this))
+    (mapcar (lambda (input)
+           (-> io-factory (remove-input input)))
+         (@ this inputs))
+    (mapcar (lambda (output)
+           (-> io-factory (remove-output output)))
+         (@ this outputs))
+    (fire on-remove))
+  
+  (defun selected ()
+    (-> this flow (set-current-action this))
+    (-> this (trigger "selected" this))
+    (fire on-select this))
+  
+  (defun unselected ()
+    (fire on-unselect))
+  
+  (defun disable-input (input-class)
+    (when-let ((input (-> this (find-input-by-class input-class))))
+      (-> input (disable))))
+
+  (defun enable-input (input-class)
+    (when-let ((input (-> this (find-input-by-class input-class))))
+      (-> input (enable))))
+  
+  (defun/contract output-connections ()
+    (>> (listof/c (maybe/c (instanceof/c *io-connection))))
+    "Return all output connections"
+    (mapcan #'(lambda (o)
+                (@ o connections))
+            (@ this outputs)))
+
+  (defun/contract input-connections ()
+    (>> (listof/c (maybe/c (instanceof/c *io-connection))))
+    "Return all input connections"
+    (mapcan #'(lambda (o) (@ o connections))
+            (@ this inputs)))
+  
+  (defun enable-all-inputs ()
+    (mapcar (lambda (input)
+              (-> input (enable)))
+            (@ this inputs)))
+  
+  ;; shows editable params of action
+  ;; (defun show-action-params () )
+  
+  ;; (defun hide-action-params ()
+  ;;   (-> *react (unmount-component-at-node (global params-view-container))))
+  
+  (defun/contract create-shape (params) ; params is for shape
+    (>> (maybe/c objectp) (instanceof/c *shape))
+    (let* ((shape-class (@ this meta shape))
+           (shape (new (shape-class (_ extend params
+                                       (@ this meta default-shape-params)
+                                       (create :inputs  (@ this inputs)
+                                               :outputs (@ this outputs)
+                                               :action  this))))))
+      (setf (@ this shape) shape)
+      shape))
+  
+  (defun/contract find-output-by-title (title)
+    (>> stringp (maybe/c (instanceof/c *output)))
+    (find-if (lambda (output)
+               (eq (@ output meta title) title))
+             (@ this outputs)))
+
+  (defun/contract find-output-by-class (cls)
+    (>>i classp (lambda (arg) (maybe/c (instanceof/c arg))))
+    (find-if (lambda (output)
+               (instanceof output cls))
+             (@ this outputs)))
+  
+  (defun/contract find-input-by-title (title)
+    (>> stringp (maybe/c (instanceof/c *input)))
+    (find-if (lambda (input)
+               (eq (@ input meta title) title))
+             (@ this inputs)))
+  
+  (defun/contract find-input-by-class (cls)
+    (>>i classp (lambda (arg) (maybe/c (instanceof/c arg))))
+    (find-if (lambda (input)
+               (instanceof input cls))
+             (@ this inputs)))
+  
+  (defun/contract serialize ()
+    (>> (object/c :id stringp
+                  :shape objectp
+                  :connections objectp))
+    (with-slots (id meta shape) this
+      (create :id id
+              :name (@ this constructor name)
+              ;:options (@ this options)
+              ;:title (@ meta title)
+              :shape (-> shape (serialize))
+              :connections (-> this (serialize-connections)))))
+
+  (defun/contract serialize-connections ()
+    (>> (listof/c (maybe/c objectp)))
+    (labels ((s (c)
+               (create source-title (@ c source meta title)
+                       target-title (@ c target meta title)
+                       source-action-id (@ c source action id)
+                       target-action-id (@ c target action id))))
+      (mapcan #'(lambda (output)
+                  (mapcar #'s (@ output connections)))
+              (@ this outputs))))
+  
+  (defun/contract unserialize (flow data)
+    (>> (instanceof/c *flow)
+        (object/c :id (maybe/c stringp)
+                  :shape (object/c :x numberp :y numberp
+                                   :width numberp :height numberp))
+        (instanceof/c *action))
+    (let* ((cls this)
+           (action (new (*my-action (create :flow flow)))))
+      (-> action (create-shape (@ data shape))))))
+            
+  ;; (defun unserialize (data)
+  ;;   (let* ((cls this)
+  ;;          (inst (new (cls (create :tit
+  ;;      (new
+  ;;        )
+              ;; :model (-> model (to-attr-json))))))
+
+;; (defjsclass *action-view ()
+;;   (defun initialize (action)
+;;     (setf (@ this action) action)
+;;     (setf (@ this model) (or (@ action params-model) (_ clone (@ action meta default-params-model)) (create)))
+;;     (_ bind-all this)))
