@@ -2,7 +2,7 @@
   "name": "actionflow",
   "version": "0.0.1",
   "authors": [
-    "Mikhail Malyuk <mikhail.maluyk@gmail.com>"
+    "Crackbot <thecrackbot@gmail.com>"
   ],
   "license": "MIT",
   "ignore": [
@@ -13,6 +13,7 @@
     "tests"
   ],
   "dependencies": {
-      "raphael": "2.1.4"
+      "raphael": "2.1.4",
+      "lodash": "3.9.3"
   }
 }

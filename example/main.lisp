@@ -10,7 +10,7 @@
     :system-source-dir #p"/home/cb/dev/2014/actionflow/example"
     :package :actionflow-example)
 
-(defparameter *ps-libs* '("plus" "contracts" "af" "example-webapp"))
+(defparameter *ps-libs* '("events" "plus" "contracts" "af" "example-webapp"))
 
 (defmacro with-html (&body body)
   `(with-html-output-to-string (*standard-output* nil :prologue t)
@@ -28,7 +28,6 @@
         (:script (str (compile-psruntime (find-pslib "contracts"))))
         (loop for url in urls
              do (htm (:script :src (concatenate 'string "/js/" url))))
-        
-       (:script "main()"))))))
+        (:script "main()"))))))
 
 (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 4141))

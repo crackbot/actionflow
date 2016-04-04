@@ -40,8 +40,8 @@
              (@ this actions)))
   
   (defun/contract add-action (action-class ev)
-    (>>i classp anyp (lambda (cls)
-                       (instanceof/c cls)))
+    (>> classp anyp (lambda (cls)
+                      (instanceof/c cls)))
     (when ev
       (-> ev (prevent-default)))
     (let* ((action (new (action-class (create :flow this))))

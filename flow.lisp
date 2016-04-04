@@ -1,7 +1,7 @@
 
 (defpackage :actionflow
   (:use :cl :parenscript 
-        :contracts.paren :plus.paren :serve.paren))
+        :contracts.paren :plus.paren :ps-events :serve.paren))
 
 (in-package :actionflow)
 

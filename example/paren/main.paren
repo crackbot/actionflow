@@ -1,4 +1,13 @@
 
+;; IO
+
+(defjsclass *out-ec2 (*output))
+
+(defmeta *out-ec2
+  (title "Out")
+  (type :out)
+  (style grey-rect-style))
+
 (defjsclass *in-ec2 (*input))
 
 (defmeta *in-ec2
@@ -11,27 +20,20 @@
 (defmeta *in-yo
   (title "YO")
   (type :in)
-  (style grey-turned-rect-style))
+  (style grey-turned-rect-style)
+  (connects (array *out-ec2)))
 
-(defjsclass *out-ec2 (*output))
+;; Actions
 
-(defmeta *out-ec2
-  (title "Out")
-  (type :out)
-  (style grey-rect-style)
-  (connects (array *in-ec2)))
-
-(defjsclass *my-action (*action)
-  ;; (defun setup ()
-  ;;   (setf% inputs (-> io-factory (init this *in-ec2 *in-yo))
-  ;;          outputs (-> io-factory (init this *out-ec2))))
-  )
+(defjsclass *my-action (*action))
 
 (defmeta *my-action
   (title "Action title")
   (shape *rectangle-shape)
   (inputs (array *in-ec2 *in-yo))
   (outputs (array *out-ec2)))
+
+;; Main
 
 (defun blame (opt)
   (-> console (log opt)))
@@ -43,14 +45,8 @@
 
 (defun main ()
   (let* ((paper (*raphael (-> document (get-element-by-id "main")) "100%" 480))
-         ;; (zpd (new (*raphael-z-p-d paper (create :zoom t
-         ;;                                         :pan t
-         ;;                                         :drag nil
-         ;;                                         'zoom-threshold (array -12 0)))))
-         (flow (ps:new (*flow paper (ps:create :yo 10)))))
-    
+         (flow (new (*flow paper (create)))))
     (setf (@ window paper) paper
           (@ window flow) flow
-          (@ window u1) (build-unit flow)
-          (@ window u2) (build-unit flow)
-          (@ window u3) (build-unit flow))))
+          (@ window units) (mapcar #'build-unit
+                                   (list flow flow flow)))))

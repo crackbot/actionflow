@@ -61,6 +61,10 @@
 
 (defmeta *io-connection
   (title "connection")
-  (view-component (component io-connection
-                    (defun render ()
-                      (who->react (:div "Hello, this is connection " (:button :on-click (@ this props connection remove) "Remove")))))))
+  (view-component "Component"))
+
+;; (component io-connection
+;;                              (defun render ()
+;;                                ;(who->react (:div "Hello, this is connection " (:button :on-click (@ this props connection remove) "Remove")))
+;;                                (-> console (log "Hello"))
+;;                       ))

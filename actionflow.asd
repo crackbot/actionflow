@@ -1,15 +1,18 @@
 
-(defsystem :actionflow
+(asdf:defsystem :actionflow
   :name "actionflow"
-  :author "Mikhail Malyuk"
-  :maintainer "Mikhail Malyuk"
-  :license ""
+  :version "0.0.2"
+  :description "Flows and diagrams based on Raphael"
+  :author "Crackbot <thecrackbot@gmail.com>"
+  :maintainer "Crackbot <thecrackbot@gmail.com>"
+  :license "The MIT License (MIT)"
   :components ((:static-file "actionflow.asd")
                (:file "flow")
-               (:module "js"
-                        :components ((:javascript-file "raphael-connections")))
-               (:module "bower_components"
-                        :components (:javascript-file "raphael/raphael"))
+
+               (:javascript-file "bower_components/lodash/lodash")
+               (:javascript-file "bower_components/raphael/raphael")
+               (:javascript-file "js/raphael-connections")
+               
                (:module "src"
                         :components ((:parenscript-file "macro")
                                      (:parenscript-file "contracts")
@@ -31,5 +34,5 @@
                                      (:parenscript-file "action")
                                      (:parenscript-file "flow"))))
 
-  :depends-on (:parenscript :serve.paren :contracts.paren :plus.paren :paren-files))
+  :depends-on (:parenscript :serve.paren :contracts.paren :ps-events :plus.paren :paren-files))
                   

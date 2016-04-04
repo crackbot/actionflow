@@ -13,7 +13,7 @@
                       io)))))
   
   (defun/contract new-input (name &optional action)
-    (>>* (classp) ((instanceof/c *action))
+    (>>* (classp) (:action (instanceof/c *action))
          (instanceof/c *input))
     (let ((input (new (name))))
       (when action
@@ -22,7 +22,7 @@
       input))
   
   (defun/contract new-output (name &optional action)
-    (>>* (classp) ((instanceof/c *action))
+    (>>* (classp) (:action (instanceof/c *action))
          (instanceof/c *output))
     (let ((output (new (name))))
       (when action

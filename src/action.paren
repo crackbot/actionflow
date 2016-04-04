@@ -92,8 +92,8 @@
                (eq (@ output meta title) title))
              (@ this outputs)))
 
-  (defun/contract find-output-by-class (cls)
-    (>>i classp (lambda (arg) (maybe/c (instanceof/c arg))))
+  (defun find-output-by-class (cls)
+    ;(>>i classp (lambda (arg) (maybe/c (instanceof/c arg))))
     (find-if (lambda (output)
                (instanceof output cls))
              (@ this outputs)))
@@ -104,8 +104,8 @@
                (eq (@ input meta title) title))
              (@ this inputs)))
   
-  (defun/contract find-input-by-class (cls)
-    (>>i classp (lambda (arg) (maybe/c (instanceof/c arg))))
+  (defun find-input-by-class (cls)
+    ;(>>i classp (lambda (arg) (maybe/c (instanceof/c arg))))
     (find-if (lambda (input)
                (instanceof input cls))
              (@ this inputs)))
